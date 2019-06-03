@@ -72,7 +72,7 @@ function findBoxes(pixels){
               remSys[0] = true;
             }
           }else{
-            remSys[3] = true;
+            remSys[0] = true;
           }
           if(u[k].y + 1 <= ca.height){ //down
             if(!includes(u,{x:u[k].x,y:u[k].y + 1}) && !includes(u2,{x:u[k].x,y:u[k].y + 1}) && rows[u[k].y + 1][u[k].x] >= threshold){ //not already in system and is a valid pixel
@@ -82,7 +82,7 @@ function findBoxes(pixels){
               remSys[1] = true;
             }
           }else{
-            remSys[3] = true;
+            remSys[1] = true;
           }
           if(u[k].x - 1 >= 0){ //left
             if(!includes(u,{x:u[k].x - 1,y:u[k].y}) && !includes(u2,{x:u[k].x - 1,y:u[k].y}) && rows[u[k].y][u[k].x - 1] >= threshold){ //not already in system and is a valid pixel
@@ -92,7 +92,7 @@ function findBoxes(pixels){
               remSys[2] = true;
             }
           }else{
-            remSys[3] = true;
+            remSys[2] = true;
           }
           if(u[k].x + 1 <= ca.width){ //right
             if(!includes(u,{x:u[k].x + 1,y:u[k].y}) && !includes(u2,{x:u[k].x + 1,y:u[k].y}) && rows[u[k].y][u[k].x + 1] >= threshold){ //not already in system and is a valid pixel
