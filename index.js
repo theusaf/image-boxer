@@ -63,53 +63,56 @@ function findBoxes(pixels){
         for(let k in u){
           k = Number(k);
           let remSys = [false,false,false,false];
+          let addSys = true;
           //detect positions UDLR of the pixel, and determine if there are more valid pixels next to them
           if(u[k].y - 1 >= 0){ //up
             if(!includes(u,{x:u[k].x,y:u[k].y - 1}) && !includes(u2,{x:u[k].x,y:u[k].y - 1}) && rows[u[k].y - 1][u[k].x] >= threshold){ //not already in system and is a valid pixel
               u.push({x:u[k].x,y:u[k].y - 1});
               f=true;
-            }else if(includes(u,{x:u[k].x,y:u[k].y - 1}) && !includes(u2,{x:u[k].x,y:u[k].y - 1}) || rows[u[k].y - 1][u[k].x] < threshold){ //already in system or invalid pixel
+            }/*else if(includes(u,{x:u[k].x,y:u[k].y - 1}) && !includes(u2,{x:u[k].x,y:u[k].y - 1}) || rows[u[k].y - 1][u[k].x] < threshold){ //already in system or invalid pixel
               remSys[0] = true;
-            }
-          }else{
+            }*/
+          }/*else{
             remSys[0] = true;
-          }
+          }*/
           if(u[k].y + 1 <= ca.height){ //down
             if(!includes(u,{x:u[k].x,y:u[k].y + 1}) && !includes(u2,{x:u[k].x,y:u[k].y + 1}) && rows[u[k].y + 1][u[k].x] >= threshold){ //not already in system and is a valid pixel
               u.push({x:u[k].x,y:u[k].y + 1});
               f=true;
-            }else if(includes(u,{x:u[k].x,y:u[k].y + 1}) && !includes(u2,{x:u[k].x,y:u[k].y + 1}) || rows[u[k].y + 1][u[k].x] < threshold){
+            }/*else if(includes(u,{x:u[k].x,y:u[k].y + 1}) && !includes(u2,{x:u[k].x,y:u[k].y + 1}) || rows[u[k].y + 1][u[k].x] < threshold){
               remSys[1] = true;
-            }
-          }else{
+            }*/
+          }/*else{
             remSys[1] = true;
-          }
+          }*/
           if(u[k].x - 1 >= 0){ //left
             if(!includes(u,{x:u[k].x - 1,y:u[k].y}) && !includes(u2,{x:u[k].x - 1,y:u[k].y}) && rows[u[k].y][u[k].x - 1] >= threshold){ //not already in system and is a valid pixel
               u.push({x:u[k].x - 1,y:u[k].y});
               f=true;
-            }else if(includes(u,{x:u[k].x - 1,y:u[k].y}) && !includes(u2,{x:u[k].x - 1,y:u[k].y}) || rows[u[k].y][u[k].x - 1] < threshold){
+            }/*else if(includes(u,{x:u[k].x - 1,y:u[k].y}) && !includes(u2,{x:u[k].x - 1,y:u[k].y}) || rows[u[k].y][u[k].x - 1] < threshold){
               remSys[2] = true;
-            }
-          }else{
+            }*/
+          }/*else{
             remSys[2] = true;
-          }
+          }*/
           if(u[k].x + 1 <= ca.width){ //right
             if(!includes(u,{x:u[k].x + 1,y:u[k].y}) && !includes(u2,{x:u[k].x + 1,y:u[k].y}) && rows[u[k].y][u[k].x + 1] >= threshold){ //not already in system and is a valid pixel
               u.push({x:u[k].x + 1,y:u[k].y});
               f=true;
-            }else if(includes(u,{x:u[k].x + 1,y:u[k].y}) && !includes(u2,{x:u[k].x + 1,y:u[k].y}) || rows[u[k].y][u[k].x + 1] < threshold){
+            }/*else if(includes(u,{x:u[k].x + 1,y:u[k].y}) && !includes(u2,{x:u[k].x + 1,y:u[k].y}) || rows[u[k].y][u[k].x + 1] < threshold){
               remSys[3] = true;
-            }
-          }else{
+            }*/
+          }/*else{
             remSys[3] = true;
-          }
-          if(remSys.filter(o=>{return o;}).length == 4){
+          }*/
+          //if(remSys.filter(o=>{return o;}).length == 4){
             console.log("remove invalid");
-            u2.push({x:u[k].x,y:u[k].y});
-            u3.push({x:u[k].x,y:u[k].y});
+            //if(addSys){
+              u2.push({x:u[k].x,y:u[k].y});
+              u3.push({x:u[k].x,y:u[k].y});
+            //}
             u.splice(k,1);
-          }
+          //}
         }
         if(!f){
           incomplete = false;
