@@ -9,5 +9,4 @@ Find positions and bounding boxes of objects in transparent images
 5. Each image will have a box around it with a number below it. Below the canvas, some information about each object is listed in JSON format
 
 ## Known Issues
-- The script will hang if there is a pixel on the first row
-- Using a different image will cause only 1/2 of the old data to be removed.
+- none so far :)
