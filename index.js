@@ -4,7 +4,7 @@ const l = document.getElementById("z");
 function includes(array,object){ //special function for objects...
   return array.filter(o=>{
     for(let i in o){
-      if(object[i] && object[i] == o[i]){
+      if(typeof(object[i]) != "undefined" && object[i] == o[i]){
         continue;
       }else{
         return false;
@@ -15,10 +15,8 @@ function includes(array,object){ //special function for objects...
 }
 l.addEventListener("change",(e)=>{
   c.clearRect(0,0,ca.width,ca.height);
-  let d = document.getElementsByTagName("p");
-  for(let i in d){
-    d[i].outerHTML = "";
-  }
+  let d = Array.from(document.getElementsByTagName("p"));
+  d.forEach(o=>{o.outerHTML = "";});
   const url = URL.createObjectURL(e.target.files[0]);
   const i = new Image();
   i.onload = ()=>{
@@ -58,7 +56,7 @@ function findBoxes(pixels){
       window.u3 = [{x:j,y:i}];
       let incomplete = true;
       let debug = 0;
-      while(incomplete/* && debug++ < 20*/){
+      while(incomplete /*&& debug++ < 5*/){
         let f = false;
         for(let k in u){
           k = Number(k);
@@ -69,50 +67,30 @@ function findBoxes(pixels){
             if(!includes(u,{x:u[k].x,y:u[k].y - 1}) && !includes(u2,{x:u[k].x,y:u[k].y - 1}) && rows[u[k].y - 1][u[k].x] >= threshold){ //not already in system and is a valid pixel
               u.push({x:u[k].x,y:u[k].y - 1});
               f=true;
-            }/*else if(includes(u,{x:u[k].x,y:u[k].y - 1}) && !includes(u2,{x:u[k].x,y:u[k].y - 1}) || rows[u[k].y - 1][u[k].x] < threshold){ //already in system or invalid pixel
-              remSys[0] = true;
-            }*/
-          }/*else{
-            remSys[0] = true;
-          }*/
+            }
+          }
           if(u[k].y + 1 <= ca.height){ //down
             if(!includes(u,{x:u[k].x,y:u[k].y + 1}) && !includes(u2,{x:u[k].x,y:u[k].y + 1}) && rows[u[k].y + 1][u[k].x] >= threshold){ //not already in system and is a valid pixel
               u.push({x:u[k].x,y:u[k].y + 1});
               f=true;
-            }/*else if(includes(u,{x:u[k].x,y:u[k].y + 1}) && !includes(u2,{x:u[k].x,y:u[k].y + 1}) || rows[u[k].y + 1][u[k].x] < threshold){
-              remSys[1] = true;
-            }*/
-          }/*else{
-            remSys[1] = true;
-          }*/
+            }
+          }
           if(u[k].x - 1 >= 0){ //left
             if(!includes(u,{x:u[k].x - 1,y:u[k].y}) && !includes(u2,{x:u[k].x - 1,y:u[k].y}) && rows[u[k].y][u[k].x - 1] >= threshold){ //not already in system and is a valid pixel
               u.push({x:u[k].x - 1,y:u[k].y});
               f=true;
-            }/*else if(includes(u,{x:u[k].x - 1,y:u[k].y}) && !includes(u2,{x:u[k].x - 1,y:u[k].y}) || rows[u[k].y][u[k].x - 1] < threshold){
-              remSys[2] = true;
-            }*/
-          }/*else{
-            remSys[2] = true;
-          }*/
+            }
+          }
           if(u[k].x + 1 <= ca.width){ //right
             if(!includes(u,{x:u[k].x + 1,y:u[k].y}) && !includes(u2,{x:u[k].x + 1,y:u[k].y}) && rows[u[k].y][u[k].x + 1] >= threshold){ //not already in system and is a valid pixel
               u.push({x:u[k].x + 1,y:u[k].y});
               f=true;
-            }/*else if(includes(u,{x:u[k].x + 1,y:u[k].y}) && !includes(u2,{x:u[k].x + 1,y:u[k].y}) || rows[u[k].y][u[k].x + 1] < threshold){
-              remSys[3] = true;
-            }*/
-          }/*else{
-            remSys[3] = true;
-          }*/
-          //if(remSys.filter(o=>{return o;}).length == 4){
-            console.log("remove invalid");
-            //if(addSys){
-              u2.push({x:u[k].x,y:u[k].y});
-              u3.push({x:u[k].x,y:u[k].y});
-            //}
-            u.splice(k,1);
-          //}
+            }
+          }
+          console.log("remove invalid");
+          u2.push({x:u[k].x,y:u[k].y});
+          u3.push({x:u[k].x,y:u[k].y});
+          u.splice(k,1);
         }
         if(!f){
           incomplete = false;
@@ -148,6 +126,21 @@ function findBoxes(pixels){
     c.lineWidth = 1;
     c.strokeRect(boundingBoxes[i].x,boundingBoxes[i].y,boundingBoxes[i].width,boundingBoxes[i].height);
     c.strokeText(i,boundingBoxes[i].x,boundingBoxes[i].y + boundingBoxes[i].height + 20);
-    document.body.append((()=>{let a = document.createElement("p");a.innerHTML=i + ": " + JSON.stringify(boundingBoxes[i]);return a;})());
+    document.body.append((()=>{
+      let a = document.createElement("p");
+      a.innerHTML=i + ": " + JSON.stringify(boundingBoxes[i]);
+      a.addEventListener("click",()=>{
+        document.execCommand("copy");
+      });
+      a.addEventListener("copy",e=>{
+        e.preventDefault();
+        if (e.clipboardData) {
+          e.clipboardData.setData('text/plain', JSON.stringify(boundingBoxes[i]));
+        } else if (window.clipboardData) {
+          window.clipboardData.setData('Text', JSON.stringify(boundingBoxes[i]));
+        }
+      });
+      return a;
+    })());
   }
 }
