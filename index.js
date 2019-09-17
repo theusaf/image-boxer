@@ -13,6 +13,10 @@ function includes(array,object){ //special function for objects...
     return true;
   }).length >= 1;
 }
+let id = {
+  w: 0,
+  h: 0
+};
 l.addEventListener("change",(e)=>{
   c.clearRect(0,0,ca.width,ca.height);
   let d = Array.from(document.getElementsByTagName("p"));
@@ -22,6 +26,8 @@ l.addEventListener("change",(e)=>{
   i.onload = ()=>{
     ca.width = i.width;
     ca.height = i.height;
+    id.w = i.width;
+    id.h = i .height;
     c.drawImage(i,0,0);
     URL.revokeObjectURL(url);
     let boxes = findBoxes(c.getImageData(0,0,canvas.width,canvas.height));
@@ -69,7 +75,7 @@ function findBoxes(pixels){
               f=true;
             }
           }
-          if(u[k].y + 1 <= ca.height){ //down
+          if(u[k].y + 1 </*=*/ ca.height){ //down
             if(!includes(u,{x:u[k].x,y:u[k].y + 1}) && !includes(u2,{x:u[k].x,y:u[k].y + 1}) && rows[u[k].y + 1][u[k].x] >= threshold){ //not already in system and is a valid pixel
               u.push({x:u[k].x,y:u[k].y + 1});
               f=true;
@@ -125,7 +131,7 @@ function findBoxes(pixels){
   for(let i in boundingBoxes){
     c.lineWidth = 1;
     c.strokeRect(boundingBoxes[i].x,boundingBoxes[i].y,boundingBoxes[i].width,boundingBoxes[i].height);
-    c.strokeText(i,boundingBoxes[i].x,boundingBoxes[i].y + boundingBoxes[i].height + 20);
+    c.strokeText(i,boundingBoxes[i].x,boundingBoxes[i].y + boundingBoxes[i].height + 0);
     document.body.append((()=>{
       let a = document.createElement("p");
       a.innerHTML=i + ": " + JSON.stringify(boundingBoxes[i]);
@@ -144,3 +150,29 @@ function findBoxes(pixels){
     })());
   }
 }
+let canvasCopyEvt = {
+  x: null,
+  y: null
+}
+ca.addEventListener("click",e=>{
+  canvasCopyEvt.x = (Math.abs(id.w / ca.clientWidth) * e.offsetX);
+  canvasCopyEvt.y = (Math.abs(id.h / ca.clientHeight) * e.offsetY);
+  document.execCommand("copy");
+});
+document.getElementById("canvasText").addEventListener("copy",e=>{
+  e.preventDefault();
+  for(let i in boundingBoxes){
+    if(boundingBoxes[i].x <= canvasCopyEvt.x && boundingBoxes[i].y <= canvasCopyEvt.y && boundingBoxes[i].width + boundingBoxes[i].x >= canvasCopyEvt.x && boundingBoxes[i].height + boundingBoxes[i].y >= canvasCopyEvt.y){
+      let data = JSON.stringify(boundingBoxes[i]);
+      ca.style.border = "10px solid green";
+      setTimeout(()=>{
+        ca.style.border = "10px solid black";
+      },1000);
+      if (e.clipboardData) {
+        e.clipboardData.setData('text/plain', data);
+      } else if (window.clipboardData) {
+        window.clipboardData.setData('Text', data);
+      }
+    }
+  }
+});
