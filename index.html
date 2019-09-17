@@ -2,12 +2,41 @@
 <html lang="en" dir="ltr">
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Image boxer</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css?family=Roboto&display=swap');
+      input{
+        display: none;
+      }
+      canvas{
+        max-width: 80vw;
+        max-height: 80vh;
+        min-width: 80vw;
+        min-height: 80vh;
+      }
+      p{
+        font-family: Roboto;
+        font: 1.4em sans-serif;
+        margin-left: 10vw;
+      }
+      label{
+        font: 3em sans-serif;
+        font-family: Roboto;
+      }
+      div{
+        text-align: center;
+      }
+    </style>
   </head>
   <body>
-    <input type="file" id="z">
-    <br>
-    <canvas id="canvas"></canvas>
-    <script type="text/javascript" src="index.js"></script>
+    <div>
+      <input type="file" id="z">
+      <label for="z">Choose Image</label>
+      <br>
+      <canvas id="canvas" style="border: 10px solid black"></canvas>
+      <h6 id="canvasText">&nbsp;</h6>
+      <script type="text/javascript" src="index.js"></script>
+    </div>
   </body>
 </html>
