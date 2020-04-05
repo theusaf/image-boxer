@@ -1,12 +1,15 @@
 const ca = document.getElementById("canvas");
 const c = ca.getContext("2d");
 const l = document.getElementById("z");
-function includes(array,object){ //special function for objects...
+function includes(array,object,ignores){ //special function for objects...
   return array.filter(o=>{
     for(let i in o){
       if(typeof(object[i]) != "undefined" && object[i] == o[i]){
         continue;
       }else{
+        if(ignores && ignores.includes(i)){
+          continue;
+        }
         return false;
       }
     }
@@ -30,14 +33,15 @@ l.addEventListener("change",(e)=>{
     id.h = i .height;
     c.drawImage(i,0,0);
     URL.revokeObjectURL(url);
-    let boxes = findBoxes(c.getImageData(0,0,canvas.width,canvas.height));
+    let boxes = newFindBoxes(c.getImageData(0,0,canvas.width,canvas.height));
   }
   i.src = url;
 });
-function findBoxes(pixels){
+
+function newFindBoxes(pixels) {
   pixels = Array.from(pixels.data);
-  //split into rows
   let rows = [];
+  // split into rows, get transparency.
   for(let i = 0;i<pixels.length;i+=ca.width * 4){
     let rowo = [];
     for(let j = 0;j<pixels.slice(i,i+ca.width * 4).length;j+=4){
@@ -45,86 +49,196 @@ function findBoxes(pixels){
     }
     rows.push(rowo);
   }
-  window.debugRows = rows;
-  //go through every fricking row, until hit a pixel, then begin creating bounding box, and continue.
   const threshold = 10;
-  window.u2 = [];
-  window.boundingBoxes = [];
-  for(let i in rows){
-    i = Number(i);
-    for(let j in rows[i]){
-      j = Number(j);
-      if(rows[i][j] < threshold || includes(u2,{x:j,y:i})){
+  let boundingBoxes = [];
+  let tracked = [];
+  let id = 0;
+  // go through all the rows until we hit a pixel, and then outline the object.
+  for(let i = 0;i < rows.length;i++) {
+    for(let j = 0;j<rows[i].length;j++){
+      if(rows[i][j] < threshold){ // if transparent pixel
         continue;
       }
-      //now find the box... ugh... This is gonna lag so much...
-      window.u = [{x:j,y:i}];
-      window.u3 = [{x:j,y:i}];
-      let incomplete = true;
-      let debug = 0;
-      while(incomplete /*&& debug++ < 5*/){
-        let f = false;
-        for(let k in u){
-          k = Number(k);
-          let remSys = [false,false,false,false];
-          let addSys = true;
-          //detect positions UDLR of the pixel, and determine if there are more valid pixels next to them
-          if(u[k].y - 1 >= 0){ //up
-            if(!includes(u,{x:u[k].x,y:u[k].y - 1}) && !includes(u2,{x:u[k].x,y:u[k].y - 1}) && rows[u[k].y - 1][u[k].x] >= threshold){ //not already in system and is a valid pixel
-              u.push({x:u[k].x,y:u[k].y - 1});
-              f=true;
-            }
+      if(includes(tracked,{x:j,y:i},["id"])){
+        let skipX = j;
+        // get the id.
+        const matchedId = tracked.filter(pos => {
+          return pos.x == j && pos.y == i;
+        })[0].id;
+        for(let k = 0;k<tracked.length;k++){ // find last pixel that matches y pos.
+          if(tracked[k].y == i && tracked[k].x > skipX && tracked[k].id == matchedId){
+            skipX = tracked[k].x;
           }
-          if(u[k].y + 1 </*=*/ ca.height){ //down
-            if(!includes(u,{x:u[k].x,y:u[k].y + 1}) && !includes(u2,{x:u[k].x,y:u[k].y + 1}) && rows[u[k].y + 1][u[k].x] >= threshold){ //not already in system and is a valid pixel
-              u.push({x:u[k].x,y:u[k].y + 1});
-              f=true;
-            }
-          }
-          if(u[k].x - 1 >= 0){ //left
-            if(!includes(u,{x:u[k].x - 1,y:u[k].y}) && !includes(u2,{x:u[k].x - 1,y:u[k].y}) && rows[u[k].y][u[k].x - 1] >= threshold){ //not already in system and is a valid pixel
-              u.push({x:u[k].x - 1,y:u[k].y});
-              f=true;
-            }
-          }
-          if(u[k].x + 1 <= ca.width){ //right
-            if(!includes(u,{x:u[k].x + 1,y:u[k].y}) && !includes(u2,{x:u[k].x + 1,y:u[k].y}) && rows[u[k].y][u[k].x + 1] >= threshold){ //not already in system and is a valid pixel
-              u.push({x:u[k].x + 1,y:u[k].y});
-              f=true;
-            }
-          }
-          console.log("remove invalid");
-          u2.push({x:u[k].x,y:u[k].y});
-          u3.push({x:u[k].x,y:u[k].y});
-          u.splice(k,1);
         }
-        if(!f){
-          incomplete = false;
+        j = skipX;
+        continue;
+      }
+      // pixel valid. begin outlining stuff.
+      let box = [];
+      id ++;
+      let finder = new boxFinder({x:j,y:i},0,{x:j,y:i},null);
+      let firstRun = true;
+      while (true) {
+        // back at the start.
+        if(includes([finder.pos],finder.start) && !firstRun){
+          // done! calculate bounding box!
+          break;
+        }
+        if(firstRun){
+          firstRun = false;
+        }
+        tracked.push({
+          x: finder.pos.x,
+          y: finder.pos.y,
+          id: id
+        });
+        box.push({
+          x: finder.pos.x,
+          y: finder.pos.y
+        });
+        let found = false;
+        switch (finder.dir) {
+          case 0:
+          // check left (up)
+          if(finder.pos.y - 1 >= 0 && rows[finder.pos.y - 1][finder.pos.x] >= threshold){
+            finder.update(1,{
+              x: finder.pos.x,
+              y: finder.pos.y - 1
+            },found);
+            found = true;
+            continue;
+          }
+          // check forward (right)
+          if (finder.pos.x + 1 < ca.width && rows[finder.pos.y][finder.pos.x + 1] >= threshold && !found) {
+            finder.update(0,{
+              x: finder.pos.x + 1,
+              y: finder.pos.y
+            },found);
+            found = true;
+            continue;
+          }
+          // check right (down)
+          if (finder.pos.y + 1 < ca.height && rows[finder.pos.y + 1][finder.pos.x] >= threshold && !found) {
+            finder.update(3,{
+              x: finder.pos.x,
+              y: finder.pos.y + 1
+            },found);
+            continue;
+          }
+          break;
+          case 1:
+          // check left (left)
+          if(finder.pos.x - 1 >= 0 && rows[finder.pos.y][finder.pos.x - 1] >= threshold){
+            finder.update(2,{
+              x: finder.pos.x - 1,
+              y: finder.pos.y
+            },found);
+            found = true;
+            continue;
+          }
+          // check forward (up)
+          if (finder.pos.y - 1 >= 0 && rows[finder.pos.y - 1][finder.pos.x] >= threshold && !found) {
+            finder.update(1,{
+              x: finder.pos.x,
+              y: finder.pos.y - 1
+            },found);
+            found = true;
+            continue;
+          }
+          // check right (right)
+          if (finder.pos.x + 1 < ca.width && rows[finder.pos.y][finder.pos.x + 1] >= threshold && !found) {
+            finder.update(0,{
+              x: finder.pos.x + 1,
+              y: finder.pos.y
+            },found);
+            continue;
+          }
+          break;
+          case 2:
+          // check left (down)
+          if(finder.pos.y + 1 < ca.height && rows[finder.pos.y + 1][finder.pos.x] >= threshold){
+            finder.update(3,{
+              x: finder.pos.x,
+              y: finder.pos.y + 1
+            },found);
+            found = true;
+            continue;
+          }
+          // check forward (left)
+          if (finder.pos.x - 1 >= 0 && rows[finder.pos.y][finder.pos.x - 1] >= threshold && !found) {
+            finder.update(2,{
+              x: finder.pos.x - 1,
+              y: finder.pos.y
+            },found);
+            found = true;
+            continue;
+          }
+          // check right (up)
+          if (finder.pos.y - 1 >= 0 && rows[finder.pos.y - 1][finder.pos.x] >= threshold && !found) {
+            finder.update(1,{
+              x: finder.pos.x,
+              y: finder.pos.y - 1
+            },found);
+            continue;
+          }
+          break;
+          case 3:
+          // check left (right)
+          if(finder.pos.x + 1 < ca.width && rows[finder.pos.y][finder.pos.x + 1] >= threshold){
+            finder.update(0,{
+              x: finder.pos.x + 1,
+              y: finder.pos.y
+            },found);
+            found = true;
+            continue;
+          }
+          // check forward (down)
+          if (finder.pos.y + 1 < ca.height && rows[finder.pos.y + 1][finder.pos.x] >= threshold && !found) {
+            finder.update(3,{
+              x: finder.pos.x,
+              y: finder.pos.y + 1
+            },found);
+            found = true;
+            continue;
+          }
+          // check right (left)
+          if (finder.pos.x - 1 >= 0 && rows[finder.pos.y][finder.pos.x - 1] >= threshold && !found) {
+            finder.update(2,{
+              x: finder.pos.x - 1,
+              y: finder.pos.y
+            },found);
+            continue;
+          }
+          break;
+        }
+        // no valid pixels. turn around!
+        if (finder.old == null) {
+          finder.dir = (finder.dir + 2) % 4;
+        } else {
+          finder = finder.old;
         }
       }
-      u3 = u3.concat(u);
-      u2 = u2.concat(u);
-      console.log(u);
-      //now sort through the used positions and find the top left and bottom right pixels...
-      let tempBox = {
-        maxY: u3[0].y,
-        lowY: u3[0].y,
-        maxX: u3[0].x,
-        lowX: u3[0].x
+      // get bounding box
+      let tmp = {
+        lowX: Infinity,
+        lowY: Infinity,
+        maxX: -Infinity,
+        maxY: -Infinity
       };
-      for(let i in u3){
-        tempBox.maxX = u3[i].x > tempBox.maxX ? u3[i].x : tempBox.maxX;
-        tempBox.maxY = u3[i].y > tempBox.maxY ? u3[i].y : tempBox.maxY;
-        tempBox.lowY = u3[i].y < tempBox.lowY ? u3[i].y : tempBox.lowY;
-        tempBox.lowX = u3[i].x < tempBox.lowX ? u3[i].x : tempBox.lowX;
+      for(let pos of box){
+        tmp.lowX = pos.x < tmp.lowX ? pos.x : tmp.lowX;
+        tmp.lowY = pos.y < tmp.lowY ? pos.y : tmp.lowY;
+        tmp.maxX = pos.x > tmp.maxX ? pos.x : tmp.maxX;
+        tmp.maxY = pos.y > tmp.maxY ? pos.y : tmp.maxY;
       }
       boundingBoxes.push({
-        x: tempBox.lowX,
-        y: tempBox.lowY,
-        width: tempBox.maxX - tempBox.lowX,
-        height: tempBox.maxY - tempBox.lowY
+        x: tmp.lowX,
+        y: tmp.lowY,
+        width: tmp.maxX - tmp.lowX,
+        height: tmp.maxY - tmp.lowY
       });
-      //return;
+      // put position at end.
+      j = tmp.maxX;
     }
   }
   //draw the bounding boxes.
@@ -149,16 +263,44 @@ function findBoxes(pixels){
       return a;
     })());
   }
+
+  // debug
+  window.boundingBoxes = boundingBoxes;
+  window.tracked = tracked;
 }
+
+class boxFinder {
+  constructor (start, dir, pos, finder) {
+    this.old = finder; // to go back to if stuck
+    this.start = start; // the original starting point
+    this.dir = dir; // the direction of the finder
+    // 0 = R, 1 = U, 2 = L, 3 = D
+    this.pos = pos; // the pos of the finder
+  }
+  createFinder () {
+    return new boxFinder(this.start,this.dir,this.pos,this.old);
+  }
+  update (dir,pos,found) {
+    if (found) {
+      this.old = new boxFinder(this.start,dir,this.pos,this.old);
+    } else {
+      this.dir = dir;
+      this.pos = pos;
+    }
+  }
+}
+
 let canvasCopyEvt = {
   x: null,
   y: null
 }
+
 ca.addEventListener("click",e=>{
   canvasCopyEvt.x = (Math.abs(id.w / ca.clientWidth) * e.offsetX);
   canvasCopyEvt.y = (Math.abs(id.h / ca.clientHeight) * e.offsetY);
   document.execCommand("copy");
 });
+
 document.getElementById("canvasText").addEventListener("copy",e=>{
   e.preventDefault();
   for(let i in boundingBoxes){
